@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# SpeedTouch Tools
+#
+# Launch requested tool located in "lib" directory.
+#
+###################################### JL20140926 ###
+
+command_help() {
+  case $1 in
+    nat) "$cmd_path" -H ;;
+      *) head -1 "$cmd_path" | grep telscript > /dev/null && echo "There is no help for that command." ||  "$cmd_path" -h ;;
+  esac
+}
+
+base="$(basename $0)"
+libs="$(dirname $0)/../lib/$base"
+
+# Show help and exit if no options given or if 'help' option given
+[[ ("$#" == 0) || ("$#" == 1 && "$1" == 'help') ]] && cat "$libs/README" && exit
+
+[[ "$1" == "license" ]] && cat "$libs/LICENSE" && exit # show license
+[[ "$1" == "help" ]] && shift && help="$1"             # request command help
+
+cmd_path="$libs/$base-$1"                              # Path to requested command
+
+[[ -x "$cmd_path" ]] && shift || { echo "Unrecognised command '$1'"; exit; }
+[[ -n "$help" ]] && command_help $help || "$cmd_path" "$@"

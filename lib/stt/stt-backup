@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# SpeedTouch Tools
+#
+# Backup configuration of Thomson Speedtouch router
+#
+# JL 20130219
+#
+#####################################################
+
+. ${0%-*} # Load common library
+
+help() {
+cat <<- EOF
+
+	${MYNAME}: Speedtouch backup
+
+	Download a backup file containing the router's configuration.
+
+	Synopsis
+
+	    ${MYNAME} [OPTIONS]
+
+	The following OPTIONS are recognised:
+
+	    -f              Filename to save backup as
+	    -h              Display this help text
+	    -l              Display the MIT Licence
+	    -n              Router hostname, defaults to "dsldevice"
+	    -u              Router username
+	    -p              Router password
+
+	If the router username and/or password are not specified then an attempt
+	will be made to obtain them from "~/.netrc"
+	EOF
+common_help
+}
+
+# Options
+while getopts ":f:hln:u:p:" opt
+do
+  case "${opt}" in
+    f) backup_file=${OPTARG}     ;;
+    h) help                      ;;
+    l) license                   ;;
+    n) router_host=${OPTARG}     ;;
+    u) router_username=${OPTARG} ;;
+    p) router_password=${OPTARG} ;;
+  esac
+done
+
+: ${router_host:='dsldevice'}               
+: ${backup_file:="b_$(date +%y%m%d)"} # Name of the backup file (router limit is 8 characters max)
+
+# Add ".ini" extension to backup file if not given (this is the extension used by the router)
+[[ "${backup_file:(-4)}" == '.ini' ]] || backup_file="${backup_file}.ini"
+
+wget_args="${router_username+" --user=$router_username"}${router_password+" --password=$router_password"}"
+
+# Do not overwrite existing backup file
+[[ -f ${backup_file} ]] && abort "Backup ${backup_file} already exists"
+
+# Use a temporary filename because files on router can only be 8 characters long
+# http://stackoverflow.com/a/2793856
+tmpfile=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8)
+
+echo "Saving configuration on router..."
+router_do config save filename = ${tmpfile} > /dev/null
+
+echo "Downloading configuration..."
+wget -q $wget_args ftp://$router_host/${tmpfile}.ini
+
+echo "Removing file from router..."    
+router_do config delete filename = ${tmpfile} > /dev/null
+
+if [[ -f ${tmpfile}.ini ]]; then
+    mv "${tmpfile}.ini" "$backup_file"
+    echo "Backup saved as ${backup_file}"
+else
+    abort "Backup not saved"
+fi

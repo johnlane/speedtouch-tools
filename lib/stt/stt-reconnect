@@ -1,0 +1,14 @@
+#!/usr/lib/stt/telscript -n dsldevice
+#http://community.plus.net/forum/index.php/topic,116160.msg1002671.html#msg1002671
+
+# Drop PPP (same as disconnect button)
+ppp ifdetach intf=Internet
+
+# Drop sync (was necessary on ST582)
+#xdsl config status=down
+
+# Raise sync (was necessary on ST582)
+#xdsl config status=up
+
+# Connect PPP (same as connect button)
+ppp ifattach intf=Internet

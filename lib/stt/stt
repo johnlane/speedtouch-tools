@@ -1,0 +1,60 @@
+#####################################################
+#
+# SpeedTouch Tools
+#
+# Common library
+#
+###################################### JL20140928 ###
+
+
+readonly MYPATH=$(dirname $0)
+readonly MYFULLNAME=$(basename $0)
+readonly MYNAME="${MYFULLNAME%-*} ${MYFULLNAME#*-}"
+
+common_help() {
+cat <<-EOF
+
+	Support
+
+	    Please raise any issues at http://github.com/johnlane/random-toolbox
+
+	License
+
+	    MIT License. Please do '${MYNAME} $1' to display the full license text.
+	EOF
+exit
+}
+
+license() { cat "${MYPATH}/LICENSE"; }
+
+help_if_no_options() { [[ "${#BASH_ARGV[@]}" > 0 ]] || help; }
+
+abort() { echo "$1. Cannot continue."; exit 1; }
+log() { [[ -n "${verbose}" ]] && echo $* || return 0; }
+
+# Locate 'telscript' used to send commands to router via its telnet interface
+TELSCRIPT="$(dirname $0)/telscript"
+[[ -x "$TELSCRIPT" ]] || TELSCRIPT="$(which telscript 2>/dev/null)" || abort "No 'telscript'"
+
+#
+# Use "telscript" to execute commands on the router.
+#
+# If arguments given then redirect them into standard input
+# The telscript reads commands from standard input.
+# Use with an argument list or a heredoc.
+# This function is a subshell (parentheses, not braces!).
+# http://stackoverflow.com/a/16907230
+# http://stackoverflow.com/a/4664378
+# http://stackoverflow.com/a/26059282
+# 
+router_do() (
+  [[ $# -gt 0 ]] && exec <<< $*
+  telscript_args="-n $router_host${router_username+" -u $router_username"}${router_password+" -p $router_password"}"
+  [[ "$noexec" ]] && cat || "$TELSCRIPT" $telscript_args | egrep -v '^{admin}=>'
+)
+
+# Given a hostname, output its IP address or an empty string if unable to resolve.
+resolve_host() { getent ahosts "$1" | grep RAW | awk '{print $1}'; }
+
+# Return true if verbose level above specified value
+verbose() { [[ ${verbose} -gt $1 ]]; }

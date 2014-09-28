@@ -1,0 +1,304 @@
+#!/bin/bash
+#
+# SpeedTouch Tools
+#
+# router-nat : perform speedtouch NAT
+#                                         JL20140926
+#####################################################
+
+. ${0%-*} # Load common library
+
+help() {
+cat <<-EOF
+
+
+	${MYNAME}: Speedtouch Router NAT tool
+
+	Perform basic NAT to Speedtouch 585. 
+
+	Synopsis
+
+	    ${MYNAME} [OPTIONS] [SERVICE] [HOST] [PORT-RANGE] [HOST-PORT]
+
+	Description
+
+	This tool performs a similar task to the "Game and Application Sharing" area
+	of the Speedtouch web administration screen. It uses the SpeedTouch "telnet"
+	interface to perform administrative actions for NAT. The actions use the
+	following terminology:
+
+	* SERVICE : A collection of zero or more RULEs
+	* RULE    : A port mapping and optional trigger port
+	* HOST    : An end-point to which a SERVICE's RULEs are applied
+
+	The actions that can be applied, and their equivalents on the SpeedTouch web
+	administration screen, are:
+
+	* CREATE  : Create a SERVICE                 ("Create a new game or application")
+	* ADD     : Add a RULE to a SERVICE              ("Modify a game or application")
+	* ENABLE  : Enable a SERVICE on a HOST
+                               ("Assign a game or application to a local network device")
+	* DISABLE : Disable a SERVICE
+	* REMOVE  : Remove a RULE from a SERVICE         ("Modify a game or application")
+	* DELETE  : Delete a SERVICE and its RULEs
+	* LIST    : List SERVICEs                        ("Modify a game or application")
+
+	Additionally, any ad-hoc COMMAND can be sent to the router. Any valid SpeedTouch
+	CLI syntax can be used.
+
+	It is possible to perform multiple actions at once. They will be applied in the
+	order of DISABLE, REMOVE, DELETE, CREATE, ADD, ENABLE, COMMAND and LIST.
+
+	Basic Usage
+
+	    ${MYNAME} -A SERVICE HOST PORT-RANGE
+
+	will create the SERVICE with a rule for the PORT-RANGE and enable it on the HOST. This
+	effectively opens the PORT-RANGE from the internet to the HOST. Reversing that would
+	be done as follows:
+	
+	    ${MYNAME} -D SERVICE
+
+        Command-Line Arguments
+
+	Arguments can be given as OPTIONS or as POSITIONAL PARAMETERS. Options are processed
+	first and then the positional parameters are used to capture any parameters that are
+	required by the selected actions but were not given as options; they are read in the
+	following order:
+	
+            SERVICE HOST PORT-RANGE HOST-PORT
+	
+	The positional parameters are only used to set required parameters: the HOST argument
+	is only set if needed for an ENABLE action.
+
+        The OPTIONS -A and -D are meta-options; they canot be combined as -AD, but must be
+	given separately as -A -D (this limitation may be removed by a future version).
+
+        The following OPTIONS are recognised:
+
+              -a              Add a RULE to a SERVICE
+	      -A              Create SERVICE, add RULE and enable on HOST (same as -ace)
+	      -b              Specify the base port
+	      -c              Create a SERVICE
+	      -C COMMAND      Send COMMAND to router (whitespace needs quoting)
+	      -d              Delete SERVICE
+	      -D              Disable and delete SERVICE (same as -xd)
+	      -e              Enable a SERVICE for a HOST (opens ports)
+	      -h              Specify the host name or IP address
+	      -H              Display this help text
+	      -g              Enable logging when enabling a SERVICE
+	      -l              Display the list of SERVICEs, or details of SERVICE
+	      -L              Display the list of SERVICEs, firewall and NAT rules
+	      -M              Display the MIT Licence
+	      -n              Don't perform commands, just display them
+	      -p              Port range
+	      -P              Trigger port range
+	      -R              Router hostname, defaults to "dsldevice"
+	      -r              Remove a rule from a SERVICE
+	      -s              Specify the SERVICE name (whitespace needs quoting)
+	      -t              TCP Protocol
+	      -T              TCP Trigger protocol
+	      -u              UDP Protocol
+	      -U              UDP Trigger Protocol
+	      -v              Verbose output
+	      -w              Router username
+	      -W              Router password
+	      -x              Disable a SERVICE (closes ports)
+
+	      The SERVICE is a text string describing the service. It must already
+	      exist unless -c is given to create it. It can be given as the first
+	      positional parameter or with the "-s" option.
+
+	      The HOST is the internal server that the external port will be forwarded
+	      to. It can be specified using a hostname or an ip address. If the hostname
+	      is given then it must be resolvable to get its IP address.
+
+	      The PORT_RANGE is a contiguous range of external ports to open. They will be
+	      forwarded to the same range of ports on the HOST unless a HOST_PORT is given.
+
+	      The PORT_RANGE can be a single number representing a single port or a pair
+	      of numbers separated by a hyphen (without whitespace) representing a
+	      contiguous port range.
+	      
+	      The HOST_PORT, if given, defines the first port on the HOST to where the
+	      external PORT_RANGE will be forwarded. If not specified then the external
+	      ports will be forwarded to the same ports on the HOST.
+
+	      The COMMAND is any valid SpeedTouch CLI command and the -C option can be 
+	      used to send ad-hoc commands to the router.
+
+	      If the router username and/or password are not specified then an attempt
+	      will be made to obtain them from "~/.netrc".
+
+	Examples
+
+            List all services
+
+	    $ ${MYNAME} -l
+
+	    List a specific service
+
+	    $ ${MYNAME} -l 'my service'
+
+	    List all services, firewall and NAT rules
+
+	    $ ${MYNAME} -L
+
+	    Assign an existing service
+
+	    $ ${MYNAME} -a 'my service' myserver
+
+	    Create a new service
+
+	    $ ${MYNAME} -c 'my service' 
+
+            Add a port mapping rule to a service
+
+	    $ ${MYNAME} -r 'my service' 102-106 1014
+
+	    Send a command (e.g. to list the system log)
+
+	    $ {MYNAME} -C 'systemlog show'
+	EOF
+common_help -M
+}
+
+# Support functions used by action functions to check required arguments
+mandatory_parameter() { [[ -n "$1" ]] || abort "No $2 specified"; }
+check_action() {
+  local valid_actions="${@:2}"
+  for e in $valid_actions; do [[ "$e" == "$1" ]] && return 0; done
+  abort "Invalid ${FUNCNAME[1]} action '$1' is not one of: $valid_actions"
+}
+
+#
+# List services (like the "Game and Application Sharing" web screen)
+# defaults to all services unless a service name is given
+#
+list() {
+  [[ -n "$1" ]] && local service="name='$1'"
+  local script="service host list $service"
+  [[ -n "$2" ]] && script="$script\nfirewall rule list chain=forward_host_service\nnat maplist"
+  echo -e $script | router_do
+}
+
+service() {
+  check_action $1 add delete
+  mandatory_parameter "$2" service
+  router_do service host $1 name=\'$2\'
+}
+
+rule() {
+  check_action $1 add delete
+  mandatory_parameter "$2" service
+  mandatory_parameter "$3" protocol
+  mandatory_parameter "$4" 'port range'
+  [[ -n "$5" ]] && baseport="baseport=$5"
+  mandatory_parameter "$6" 'trigger protocol'
+  [[ -n "$7" ]] && trigger="triggerprotocol=$6 triggerport='$7'"
+  router_do service host rule $1 name=\'$2\' protocol=$3 portrange=$4 $baseport $trigger
+}
+
+host() {
+  check_action $1 assign disable
+  mandatory_parameter "$2" service
+  local assign_args
+  if [[ "$1" == "assign" ]]
+  then
+    mandatory_parameter "$3" host
+    mandatory_parameter "$4" log
+    ip=$(resolve_host "$3"); [[ -z "$ip" ]] && abort "Unable to resolve $3"
+    assign_args="host=$ip log=$4"
+  fi
+  router_do service host $1 name=\'$2\' $assign_args
+}
+
+
+# Pop an argument out of the 'arg' array
+# http://stackoverflow.com/questions/26061881
+pop_args() {
+  while [[ $# != 0 ]]
+  do
+    local value=$args
+    [[ -z "${!1}" && -n "$value" ]] && read -r "$1" <<< "$value" && args=("${args[@]:1}")
+    shift
+  done
+}
+
+help_if_no_options
+
+# Expand meta-args
+# This doesn't recognise combind args like -AD: use -A -D instead.
+args=()
+for arg in "$@"
+do
+  case "$arg" in
+    -A) args+=('-ace') ;;
+    -D) args+=('-xd') ;;
+     *) args+=("$arg") ;;
+   esac
+done
+set -- "${args[@]}"
+
+# Options
+while getopts ":ab:cC:degh:HlLMnp:P:rR:s:tTuUvw:W:x" opt
+do
+  case "${opt}" in
+    a) add_action='rule add "$service" "$protocol" "$port_range" "$base_port" "$trigger_protocol" "$trigger_port"' ;;
+    b) echo "www"; base_port=${OPTARG}                  ;;
+    c) create_action='service add "$service"'           ;;
+    C) command_action="router_do ${OPTARG}" ;;
+    d) delete_action='service delete "$service"'           ;;
+    e) enable_action='host assign "$service" "$host" "$log"' ;;
+    h) host=${OPTARG}                                 ;;
+    H) help                                ;;
+    g) log=enabled ;;
+    l) list_action='list "$service"'             ;;
+    L) list_action='list "$service" detailed'  ;;
+    M) license                              ;;
+    n) noexec=1                            ;;
+    p) port_range=${OPTARG}                       ;;
+    P) trigger_port=${OPTARG}               ;;
+    r) remove_action='rule delete "$service" "$protocol" "$port_range" "$base_port" "$trigger_protocol" "$trigger_port"';;
+    R) router_host=${OPTARG} ;;
+    s) service=${OPTARG}                    ;;
+    t) protocol=tcp                         ;;
+    T) trigger_protocol=tcp                 ;;
+    u) protocol=udp                         ;;
+    U) trigger_protocol=udp                 ;;
+    v) verbose=1                            ;;
+    w) router_username=${OPTARG} ;;
+    W) router_password=${OPTARG} ;;
+    x) disable_action='host disable "$service"' ;;
+  esac
+done
+shift $((OPTIND-1)) # Shift off the options and optional --
+
+# Variables to set from positional arguments if not already set
+vars='service'
+[[ -n "$enable_action" ]] && vars="$vars host"
+vars="$vars port_range base_port trigger_port"
+
+# Use positional arguments to set some variables specified as options
+args=("$@") # argument list for pop_args below
+pop_args $vars 
+
+# Defaults
+: ${log:=disabled}               # Logging off by default
+: ${protocol:=any}               # Use both UDP and TCP protocol
+: ${trigger_protocol:=$protocol} # Default to protocol setting
+: ${router_host:='dsldevice'}           
+
+# Log interesting variables
+vars="$vars log protocol trigger_protocol router_host router_username router_password"
+for v in $vars; do log "$v=${!v}"; done
+
+# perform actions in a sensible order
+[[ -n "$disable_action" ]] && eval "$disable_action"
+[[ -n "$remove_action" ]] && eval "$remove_action"
+[[ -n "$delete_action" ]] && eval "$delete_action"
+[[ -n "$create_action" ]] && eval "$create_action"
+[[ -n "$add_action" ]] && eval "$add_action"
+[[ -n "$enable_action" ]] && eval "$enable_action"
+[[ -n "$command_action" ]] && eval "$command_action"
+[[ -n "$list_action" ]] && eval "$list_action"

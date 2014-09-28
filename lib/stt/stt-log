@@ -1,0 +1,2 @@
+#!/usr/lib/stt/telscript -n dsldevice
+systemlog show hist=enabled

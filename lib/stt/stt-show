@@ -1,0 +1,13 @@
+#!/usr/lib/stt/telscript -n dsldevice
+env list
+system settime
+dhcp server pool list
+dhcp server lease list
+dns server host list
+service host list
+firewall rule list
+nat iflist
+nat maplist
+nat tmpllist
+hostmgr list
+user list

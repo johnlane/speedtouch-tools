@@ -1,0 +1,2 @@
+#!/usr/lib/stt/telscript -n dsldevice
+saveall

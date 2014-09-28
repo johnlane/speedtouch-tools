@@ -1,0 +1,55 @@
+
+Speedtouch Tools
+
+Command-Line administration tools for the Speedtouch 585 and similar routers. 
+
+Description
+
+SpeedTouch-Tools is a collection of command-line administration tools for the
+Thomson SpeedTouch TG585 and similar routers. Each tool has documentation
+describing its use. The following tools are available:
+
+* backup     : backup router configuration
+* connect    : connect the ADSL
+* disconnect : disconnect the ADSL
+* down       : same as disconnect
+* log        : display the router system log
+* nat        : perform NAT administration
+* reboot     : reboot the router
+* reconnect  : disconnect, then reconnect the ADSL
+* save       : save the router configuration
+* show       : show router information
+* up         : same as connect
+
+To use a tool
+
+    stt tool [tool-options]
+
+For further information about a tool, do
+
+    stt help tool
+
+Support
+
+    Please raise any issues at http://github.com/johnlane/speedtouch-tools
+
+License
+
+    MIT License. Please do 'stt license' to display the full license text
+                 or see the LICENSE file in the package's "lib" directory.
+
+Speedtouch Tools,  Copyright(c)2014 John Lane
+
+Router Administration Scripts
+=============================
+
+telscript      Python program to allow scripting of
+               a telnet session. Copy to /usr/bin
+               and make executable (chmod +x).
+
+router-commit  telscript to commit router configs
+router-backup  bash script to backup router configs
+router-dns     telscript to write static dns entries
+router-query   telscript to list various router data
+router-log     telscropt to output the router system log
+router-nat     bash script to perform NAT administration

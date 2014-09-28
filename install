@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# SpeedTouch Tools
+#
+# Installer
+#
+###################################### JL20140926 ###
+
+: ${install_root:=/usr}
+
+[[ -d "$install_root" ]] || { echo "'$install_root' does not exist."; exit 1; }
+
+src=$(dirname "$0")
+
+echo "Installing from '$src' to '$install_root' ..."
+cp -a "$src"/{bin,lib} "$install_root"
+echo "Done"
