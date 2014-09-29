@@ -1,2 +1,6 @@
 *.un~
 *.swp
+pkg/
+src/
+speedtouch-tools/
+speedtouch-tools-*.pkg.tar.xz
