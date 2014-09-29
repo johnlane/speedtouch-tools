@@ -7,7 +7,7 @@ pkgver=r7.8c1038a
 pkgrel=1
 pkgdesc="Speedtouch 585 Router Admin Tools for the Linux command-line"
 arch=(any)
-url='git@github.com:johnlane/speedtouch-tools.git'
+url='https://github.com/johnlane/speedtouch-tools'
 license=('MIT')
 
 source=('git+https://github.com/johnlane/speedtouch-tools.git')
