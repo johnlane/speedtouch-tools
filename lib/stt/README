@@ -14,6 +14,7 @@ describing its use. The following tools are available:
 * disconnect : disconnect the ADSL
 * down       : same as disconnect
 * log        : display the router system log
+* login      : login to the router interactively
 * nat        : perform NAT administration
 * reboot     : reboot the router
 * reconnect  : disconnect, then reconnect the ADSL
@@ -39,17 +40,3 @@ License
                  or see the LICENSE file in the package's "lib" directory.
 
 Speedtouch Tools,  Copyright(c)2014 John Lane
-
-Router Administration Scripts
-=============================
-
-telscript      Python program to allow scripting of
-               a telnet session. Copy to /usr/bin
-               and make executable (chmod +x).
-
-router-commit  telscript to commit router configs
-router-backup  bash script to backup router configs
-router-dns     telscript to write static dns entries
-router-query   telscript to list various router data
-router-log     telscropt to output the router system log
-router-nat     bash script to perform NAT administration
