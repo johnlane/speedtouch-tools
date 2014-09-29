@@ -21,8 +21,9 @@ libs="$(dirname $0)/../lib/$base"
 
 [[ "$1" == "license" ]] && cat "$libs/LICENSE" && exit # show license
 [[ "$1" == "help" ]] && shift && help="$1"             # request command help
+[[ ("$1" == "login") && ("$#" == 1) ]] && args='-n dsldevice' # default login destination
 
 cmd_path="$libs/$base-$1"                              # Path to requested command
 
 [[ -x "$cmd_path" ]] && shift || { echo "Unrecognised command '$1'"; exit; }
-[[ -n "$help" ]] && command_help $help || "$cmd_path" "$@"
+[[ -n "$help" ]] && command_help $help || "$cmd_path" "$@" $args
