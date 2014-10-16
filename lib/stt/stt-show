@@ -1,5 +1,8 @@
 #!/usr/lib/stt/telscript -n dsldevice
+xdsl info
+ppp iflist
 env list
+ip config
 system settime
 dhcp server pool list
 dhcp server lease list

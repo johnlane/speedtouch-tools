@@ -3,7 +3,7 @@
 # Speedtouch Admin Tools for Linux
 
 pkgname=speedtouch-tools
-pkgver=r9.1e449ae
+pkgver=r10.ba00e03
 pkgrel=1
 pkgdesc="Speedtouch 585 Router Admin Tools for the Linux command-line"
 arch=(any)

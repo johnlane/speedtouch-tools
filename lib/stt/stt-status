@@ -1,0 +1,5 @@
+#!/usr/lib/stt/telscript -n dsldevice
+
+# Status
+xdsl info
+ppp iflist
