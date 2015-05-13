@@ -20,6 +20,7 @@ describing its use. The following tools are available:
 * reconnect  : disconnect, then reconnect the ADSL
 * save       : save the router configuration
 * show       : show router information
+* status     : show router status
 * up         : same as connect
 
 To use a tool

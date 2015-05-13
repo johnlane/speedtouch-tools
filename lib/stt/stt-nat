@@ -158,7 +158,7 @@ cat <<-EOF
 
 	    Send a command (e.g. to list the system log)
 
-	    $ {MYNAME} -C 'systemlog show'
+	    $ ${MYNAME} -C 'systemlog show'
 	EOF
 common_help -M
 }
