@@ -21,6 +21,7 @@ describing its use. The following tools are available:
 * save       : save the router configuration
 * show       : show router information
 * status     : show router status
+* syslog     : broadcast log to syslog and flush
 * up         : same as connect
 
 To use a tool

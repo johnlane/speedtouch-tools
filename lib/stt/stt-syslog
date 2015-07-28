@@ -1,0 +1,7 @@
+#!/usr/lib/stt/telscript -n dsldevice
+
+# Send the current log to whoever is listening (broadcast)
+systemlog send hist=enabled dest=10.255.255.255
+
+# Flush it
+systemlog flush
